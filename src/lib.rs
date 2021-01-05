@@ -12,12 +12,12 @@
 //!
 //! ```rust
 //! struct AmxState {
-//!     /// "8 64-byte registers", a.k.a. `x`
-//!     amx0: [[u8; 64]; 8],
-//!     /// "8 64-byte registers", a.k.a. `y`
-//!     amx1: [[u8; 64]; 8],
-//!     /// "64 64-byte registers in an M-by-N matrix", a.k.a. `z`
-//!     amx2: [[u8; 64]; 64],
+//!     /// "8 64-byte registers"
+//!     x: [[u8; 64]; 8],
+//!     /// "8 64-byte registers"
+//!     y: [[u8; 64]; 8],
+//!     /// "64 64-byte registers in an M-by-N matrix"
+//!     z: [[u8; 64]; 64],
 //! }
 //! ```
 #![feature(asm)]
@@ -110,47 +110,47 @@ impl MemSize {
 }
 
 #[inline(always)]
-pub unsafe fn load_amx0(payload: impl Into<MemPayload>) {
+pub unsafe fn load_x(payload: impl Into<MemPayload>) {
     ops::ldx(payload.into().0);
 }
 
 #[inline(always)]
-pub unsafe fn load_amx1(payload: impl Into<MemPayload>) {
+pub unsafe fn load_y(payload: impl Into<MemPayload>) {
     ops::ldy(payload.into().0);
 }
 
 #[inline(always)]
-pub unsafe fn store_amx0(payload: impl Into<MemPayload>) {
+pub unsafe fn store_x(payload: impl Into<MemPayload>) {
     ops::stx(payload.into().0);
 }
 
 #[inline(always)]
-pub unsafe fn store_amx1(payload: impl Into<MemPayload>) {
+pub unsafe fn store_y(payload: impl Into<MemPayload>) {
     ops::sty(payload.into().0);
 }
 
 #[inline(always)]
-pub unsafe fn load_amx2(payload: impl Into<MemPayload>) {
+pub unsafe fn load_z(payload: impl Into<MemPayload>) {
     ops::ldz(payload.into().0);
 }
 
 #[inline(always)]
-pub unsafe fn store_amx2(payload: impl Into<MemPayload>) {
+pub unsafe fn store_z(payload: impl Into<MemPayload>) {
     ops::stz(payload.into().0);
 }
 
-/// Interleaved load to `amx2` (the Z register).
+/// Interleaved load to `z` (the Z register).
 ///
 /// [`MemArgs::size`] is ignored and assumed to be [`MemSize::_64`].
 #[inline(always)]
-pub unsafe fn load_amx2_interleaved(payload: impl Into<MemPayload>) {
+pub unsafe fn load_z_interleaved(payload: impl Into<MemPayload>) {
     ops::ldzi(payload.into().0);
 }
 
-/// Interleaved store from `amx2` (the Z register).
+/// Interleaved store from `z` (the Z register).
 ///
 /// [`MemArgs::size`] is ignored and assumed to be [`MemSize::_64`].
 #[inline(always)]
-pub unsafe fn store_amx2_interleaved(payload: impl Into<MemPayload>) {
+pub unsafe fn store_z_interleaved(payload: impl Into<MemPayload>) {
     ops::stzi(payload.into().0);
 }

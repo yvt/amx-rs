@@ -10,16 +10,16 @@ fn init() {
 unsafe fn load_generic(args: impl Into<MemPayload>, reg: u8, interleaved: bool) {
     match (reg, interleaved) {
         (0, false) => {
-            amx::load_amx0(args);
+            amx::load_x(args);
         }
         (1, false) => {
-            amx::load_amx1(args);
+            amx::load_y(args);
         }
         (2, false) => {
-            amx::load_amx2(args);
+            amx::load_z(args);
         }
         (2, true) => {
-            amx::load_amx2_interleaved(args);
+            amx::load_z_interleaved(args);
         }
         _ => unreachable!(),
     }
@@ -28,16 +28,16 @@ unsafe fn load_generic(args: impl Into<MemPayload>, reg: u8, interleaved: bool) 
 unsafe fn store_generic(args: impl Into<MemPayload>, reg: u8, interleaved: bool) {
     match (reg, interleaved) {
         (0, false) => {
-            amx::store_amx0(args);
+            amx::store_x(args);
         }
         (1, false) => {
-            amx::store_amx1(args);
+            amx::store_y(args);
         }
         (2, false) => {
-            amx::store_amx2(args);
+            amx::store_z(args);
         }
         (2, true) => {
-            amx::store_amx2_interleaved(args);
+            amx::store_z_interleaved(args);
         }
         _ => unreachable!(),
     }
@@ -195,7 +195,7 @@ fn load_and_check_register() {
         // Calculate the expected result
         let mut expected: Vec<u64> = pat2[0..reg_size].to_owned();
         if interleaved {
-            // Assume the structure `amx2: [[u8; 64]; 64]`
+            // Assume the structure `z: [[u8; 64]; 64]`
             //
             // reg_offset is split into two parts:
             //
@@ -204,8 +204,8 @@ fn load_and_check_register() {
             //
             // Each input 64-bit value is split into low and high parts, and
             // the resultant low parts go to
-            // `amx2[reg_index][second_half * 4..][..4]`. The high parts go to
-            // `amx2[reg_index + 1][second_half * 4..][..4]`
+            // `z[reg_index][second_half * 4..][..4]`. The high parts go to
+            // `z[reg_index + 1][second_half * 4..][..4]`
             let reg_start = (reg_offset as usize % 2) * 4 + (reg_offset as usize / 2) * 16;
             for i in (0..effective_size.num_bytes() / 8).step_by(2) {
                 let low1 = pat1[i] & 0xffff_ffff;
