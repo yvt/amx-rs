@@ -109,7 +109,7 @@ fn copy_and_check_memory() {
         assert_eq!(*got, *expected);
     }
 
-    amx::disable();
+    unsafe { amx::disable() };
 }
 
 #[test]
@@ -229,5 +229,5 @@ fn load_and_check_register() {
         );
     }
 
-    amx::disable();
+    unsafe { amx::disable() };
 }
