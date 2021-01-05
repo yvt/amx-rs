@@ -1,43 +1,78 @@
 #![feature(asm)]
 use aligned_box::AlignedBox;
-use amx::{MemArgs, MemPayload, MemSize};
 use itertools::iproduct;
 
 fn init() {
     let _ = env_logger::builder().is_test(true).try_init();
 }
 
-unsafe fn load_generic(args: impl Into<MemPayload>, reg: u8, interleaved: bool) {
-    match (reg, interleaved) {
-        (0, false) => {
-            amx::load_x(args);
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(u8)]
+pub enum MemSize {
+    /// 64 bytes
+    _64 = 0,
+    /// 128 bytes
+    _128 = 1,
+}
+
+impl MemSize {
+    pub fn num_bytes(self) -> usize {
+        match self {
+            Self::_64 => 64,
+            Self::_128 => 128,
         }
-        (1, false) => {
-            amx::load_y(args);
+    }
+}
+
+unsafe fn load_generic<T>(ptr: *const T, index: usize, size: MemSize, reg: u8, interleaved: bool) {
+    match (size, reg, interleaved) {
+        (MemSize::_64, 0, false) => {
+            amx::load512_x(ptr, index);
         }
-        (2, false) => {
-            amx::load_z(args);
+        (MemSize::_64, 1, false) => {
+            amx::load512_y(ptr, index);
         }
-        (2, true) => {
-            amx::load_z_interleaved(args);
+        (MemSize::_64, 2, false) => {
+            amx::load512_z(ptr, index);
+        }
+        (MemSize::_64, 2, true) => {
+            amx::load512_z_interleaved(ptr, index);
+        }
+        (MemSize::_128, 0, false) => {
+            amx::load1024_x_aligned(ptr, index);
+        }
+        (MemSize::_128, 1, false) => {
+            amx::load1024_y_aligned(ptr, index);
+        }
+        (MemSize::_128, 2, false) => {
+            amx::load1024_z_aligned(ptr, index);
         }
         _ => unreachable!(),
     }
 }
 
-unsafe fn store_generic(args: impl Into<MemPayload>, reg: u8, interleaved: bool) {
-    match (reg, interleaved) {
-        (0, false) => {
-            amx::store_x(args);
+unsafe fn store_generic<T>(ptr: *mut T, index: usize, size: MemSize, reg: u8, interleaved: bool) {
+    match (size, reg, interleaved) {
+        (MemSize::_64, 0, false) => {
+            amx::store512_x(ptr, index);
         }
-        (1, false) => {
-            amx::store_y(args);
+        (MemSize::_64, 1, false) => {
+            amx::store512_y(ptr, index);
         }
-        (2, false) => {
-            amx::store_z(args);
+        (MemSize::_64, 2, false) => {
+            amx::store512_z(ptr, index);
         }
-        (2, true) => {
-            amx::store_z_interleaved(args);
+        (MemSize::_64, 2, true) => {
+            amx::store512_z_interleaved(ptr, index);
+        }
+        (MemSize::_128, 0, false) => {
+            amx::store1024_x_aligned(ptr, index);
+        }
+        (MemSize::_128, 1, false) => {
+            amx::store1024_y_aligned(ptr, index);
+        }
+        (MemSize::_128, 2, false) => {
+            amx::store1024_z_aligned(ptr, index);
         }
         _ => unreachable!(),
     }
@@ -46,7 +81,7 @@ unsafe fn store_generic(args: impl Into<MemPayload>, reg: u8, interleaved: bool)
 #[test]
 fn copy_and_check_memory() {
     init();
-    amx::enable();
+    unsafe { amx::enable() };
 
     let mut src: AlignedBox<[u16]> = AlignedBox::slice_from_default(0x80, 4096).unwrap();
     for (i, src) in src.iter_mut().enumerate() {
@@ -59,7 +94,7 @@ fn copy_and_check_memory() {
         0..64,
         &[false, true]
     ) {
-        if interleaved && reg != 2 {
+        if interleaved && (reg != 2 || size != MemSize::_64) {
             continue;
         }
 
@@ -71,13 +106,10 @@ fn copy_and_check_memory() {
             interleaved
         );
 
-        // amxldzi and amxstzi ignores the size bit
-        let effective_size = if interleaved { MemSize::_64 } else { size };
-
         let mut got: AlignedBox<[u16]> = AlignedBox::slice_from_value(0x80, 4096, 0xbeef).unwrap();
         let expected: Vec<u16> = (0..4096)
             .map(|i| {
-                if i as usize * 2 < effective_size.num_bytes() {
+                if i as usize * 2 < size.num_bytes() {
                     i
                 } else {
                     0xbeef
@@ -86,24 +118,8 @@ fn copy_and_check_memory() {
             .collect();
 
         unsafe {
-            load_generic(
-                MemArgs {
-                    ptr: src.as_ptr() as *mut (),
-                    reg_offset,
-                    size,
-                },
-                reg,
-                interleaved,
-            );
-            store_generic(
-                MemArgs {
-                    ptr: got.as_mut_ptr() as *mut (),
-                    reg_offset,
-                    size,
-                },
-                reg,
-                interleaved,
-            );
+            load_generic(src.as_ptr(), reg_offset, size, reg, interleaved);
+            store_generic(got.as_mut_ptr(), reg_offset, size, reg, interleaved);
         }
 
         assert_eq!(*got, *expected);
@@ -115,7 +131,7 @@ fn copy_and_check_memory() {
 #[test]
 fn load_and_check_register() {
     init();
-    amx::enable();
+    unsafe { amx::enable() };
 
     let mut pat1: AlignedBox<[u64]> = AlignedBox::slice_from_default(0x80, 16).unwrap();
     for (i, pat1) in pat1.iter_mut().enumerate() {
@@ -130,7 +146,7 @@ fn load_and_check_register() {
         0..64,
         &[false, true]
     ) {
-        if interleaved && reg != 2 {
+        if interleaved && (reg != 2 || size != MemSize::_64) {
             continue;
         }
 
@@ -142,9 +158,6 @@ fn load_and_check_register() {
             interleaved
         );
 
-        // amxldzi and amxstzi ignores the size bit
-        let effective_size = if interleaved { MemSize::_64 } else { size };
-
         // Number of `u64`s in the register set
         let reg_size = [64, 64, 512][reg as usize];
 
@@ -152,11 +165,9 @@ fn load_and_check_register() {
         for i in 0..reg_size / 8 {
             unsafe {
                 load_generic(
-                    MemArgs {
-                        ptr: pat2[i * 8..].as_ptr() as *mut (),
-                        reg_offset: i as _,
-                        size: MemSize::_64,
-                    },
+                    pat2[i * 8..].as_ptr() as *mut (),
+                    i,
+                    MemSize::_64,
                     reg,
                     false,
                 );
@@ -165,15 +176,7 @@ fn load_and_check_register() {
 
         // Load `pat1` to somewhere in the register
         unsafe {
-            load_generic(
-                MemArgs {
-                    ptr: pat1.as_ptr() as *mut (),
-                    reg_offset,
-                    size,
-                },
-                reg,
-                interleaved,
-            );
+            load_generic(pat1.as_ptr(), reg_offset, size, reg, interleaved);
         }
 
         // Read the whole register set
@@ -181,11 +184,9 @@ fn load_and_check_register() {
         for i in 0..reg_size / 8 {
             unsafe {
                 store_generic(
-                    MemArgs {
-                        ptr: got[i * 8..].as_mut_ptr() as *mut (),
-                        reg_offset: i as _,
-                        size: MemSize::_64,
-                    },
+                    got[i * 8..].as_mut_ptr() as *mut (),
+                    i,
+                    MemSize::_64,
                     reg,
                     false,
                 );
@@ -207,7 +208,7 @@ fn load_and_check_register() {
             // `z[reg_index][second_half * 4..][..4]`. The high parts go to
             // `z[reg_index + 1][second_half * 4..][..4]`
             let reg_start = (reg_offset as usize % 2) * 4 + (reg_offset as usize / 2) * 16;
-            for i in (0..effective_size.num_bytes() / 8).step_by(2) {
+            for i in (0..size.num_bytes() / 8).step_by(2) {
                 let low1 = pat1[i] & 0xffff_ffff;
                 let low2 = pat1[i + 1] & 0xffff_ffff;
                 let high1 = pat1[i] >> 32;
@@ -217,7 +218,7 @@ fn load_and_check_register() {
             }
         } else {
             // Simple copy with register index wrap-around
-            for i in 0..effective_size.num_bytes() / 8 {
+            for i in 0..size.num_bytes() / 8 {
                 expected[(reg_offset as usize * 8 + i) % reg_size] = pat1[i];
             }
         }

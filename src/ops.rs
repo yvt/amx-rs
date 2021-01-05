@@ -1,5 +1,6 @@
-//! Low-level operations (modeled after [Apple compiler intrinsics]
-//! (https://www.realworldtech.com/forum/?threadid=187087&curpostid=187120))
+//! Low-level operations (modeled after [Apple compiler intrinsics])
+//!
+//! [Apple compiler intrinsics]: https://www.realworldtech.com/forum/?threadid=187087&curpostid=187120
 
 /// Emit an AMX instruction with an input register.
 #[inline(always)]

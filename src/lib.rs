@@ -26,8 +26,8 @@ pub mod ops;
 
 /// Enable the coprocessor.
 #[inline(always)]
-pub fn enable() {
-    unsafe { ops::set() };
+pub unsafe fn enable() {
+    ops::set();
 }
 
 /// Disable the coprocessor.
@@ -37,12 +37,12 @@ pub unsafe fn disable() {
 }
 
 /// The parameters of AMX's load and store instructions.
-#[derive(Debug, Copy, Clone)]
-pub struct MemArgs {
-    pub ptr: *mut (),
+#[derive(Copy, Clone)]
+struct MemArgs {
+    ptr: *mut (),
     /// 6-bit register offset (in units of `0x40`) in range `0..64`
-    pub reg_offset: u8,
-    pub size: MemSize,
+    reg_offset: u64,
+    size: MemSize,
 }
 
 impl MemArgs {
@@ -51,106 +51,248 @@ impl MemArgs {
         debug_assert!(self.reg_offset < 64);
 
         (self.ptr as u64) & 0x00ff_ffff_ffff_ffff
-            | ((self.reg_offset as u64) << 56)
+            | (self.reg_offset << 56)
             // [61] - ?
             | ((self.size as u64) << 62)
         // [63] - ?
     }
 }
 
-pub struct MemPayload(pub u64);
-
-impl<T> From<(*const T, u8, MemSize)> for MemPayload {
-    #[inline]
-    fn from((ptr, reg_offset, size): (*const T, u8, MemSize)) -> MemPayload {
-        MemArgs {
-            ptr: ptr as _,
-            reg_offset,
-            size,
-        }
-        .into()
-    }
-}
-
-impl<T> From<(*mut T, u8, MemSize)> for MemPayload {
-    #[inline]
-    fn from((ptr, reg_offset, size): (*mut T, u8, MemSize)) -> MemPayload {
-        MemArgs {
-            ptr: ptr as _,
-            reg_offset,
-            size,
-        }
-        .into()
-    }
-}
-
-impl From<MemArgs> for MemPayload {
-    #[inline]
-    fn from(x: MemArgs) -> MemPayload {
-        MemPayload(x.encode())
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone)]
 #[repr(u8)]
-pub enum MemSize {
+enum MemSize {
     /// 64 bytes
     _64 = 0,
     /// 128 bytes
     _128 = 1,
 }
 
-impl MemSize {
-    pub fn num_bytes(self) -> usize {
-        match self {
-            Self::_64 => 64,
-            Self::_128 => 128,
+/// Load 512 bits (64 bytes) from memory to `x[index % 8][0..64]`.
+///
+/// `index` must be in range `0..64`.
+#[inline(always)]
+pub unsafe fn load512_x<T>(ptr: *const T, index: usize) {
+    debug_assert!(index < 64);
+    ops::ldx(
+        MemArgs {
+            ptr: ptr as *mut (),
+            reg_offset: index as u64,
+            size: MemSize::_64,
         }
-    }
+        .encode(),
+    );
 }
 
-#[inline(always)]
-pub unsafe fn load_x(payload: impl Into<MemPayload>) {
-    ops::ldx(payload.into().0);
-}
-
-#[inline(always)]
-pub unsafe fn load_y(payload: impl Into<MemPayload>) {
-    ops::ldy(payload.into().0);
-}
-
-#[inline(always)]
-pub unsafe fn store_x(payload: impl Into<MemPayload>) {
-    ops::stx(payload.into().0);
-}
-
-#[inline(always)]
-pub unsafe fn store_y(payload: impl Into<MemPayload>) {
-    ops::sty(payload.into().0);
-}
-
-#[inline(always)]
-pub unsafe fn load_z(payload: impl Into<MemPayload>) {
-    ops::ldz(payload.into().0);
-}
-
-#[inline(always)]
-pub unsafe fn store_z(payload: impl Into<MemPayload>) {
-    ops::stz(payload.into().0);
-}
-
-/// Interleaved load to `z` (the Z register).
+/// Load 512 bits (64 bytes) from memory to `y[index % 8][0..64]`.
 ///
-/// [`MemArgs::size`] is ignored and assumed to be [`MemSize::_64`].
+/// `index` must be in range `0..64`.
 #[inline(always)]
-pub unsafe fn load_z_interleaved(payload: impl Into<MemPayload>) {
-    ops::ldzi(payload.into().0);
+pub unsafe fn load512_y<T>(ptr: *const T, index: usize) {
+    debug_assert!(index < 64);
+    ops::ldy(
+        MemArgs {
+            ptr: ptr as *mut (),
+            reg_offset: index as u64,
+            size: MemSize::_64,
+        }
+        .encode(),
+    );
 }
 
-/// Interleaved store from `z` (the Z register).
+/// Load 512 bits (64 bytes) from memory to `z[index][0..64]`.
 ///
-/// [`MemArgs::size`] is ignored and assumed to be [`MemSize::_64`].
+/// `index` must be in range `0..64`.
 #[inline(always)]
-pub unsafe fn store_z_interleaved(payload: impl Into<MemPayload>) {
-    ops::stzi(payload.into().0);
+pub unsafe fn load512_z<T>(ptr: *const T, index: usize) {
+    debug_assert!(index < 64);
+    ops::ldz(
+        MemArgs {
+            ptr: ptr as *mut (),
+            reg_offset: index as u64,
+            size: MemSize::_64,
+        }
+        .encode(),
+    );
+}
+
+/// Load 512 bits (64 bytes) from memory to `z[index][0..64]` with interleaving.
+///
+/// `index` must be in range `0..64`.
+#[inline(always)]
+pub unsafe fn load512_z_interleaved<T>(ptr: *const T, index: usize) {
+    debug_assert!(index < 64);
+    ops::ldzi(
+        MemArgs {
+            ptr: ptr as *mut (),
+            reg_offset: index as u64,
+            size: MemSize::_64,
+        }
+        .encode(),
+    );
+}
+
+/// Load 1024 bits (128 bytes) from memory to
+/// `[x[index % 8][0..64], x[(index + 1) % 8][0..64]]`.
+///
+/// `index` must be in range `0..64`.
+#[inline(always)]
+pub unsafe fn load1024_x_aligned<T>(ptr: *const T, index: usize) {
+    debug_assert!(index < 64);
+    ops::ldx(
+        MemArgs {
+            ptr: ptr as *mut (),
+            reg_offset: index as u64,
+            size: MemSize::_128,
+        }
+        .encode(),
+    );
+}
+
+/// Load 1024 bits (128 bytes) from memory to
+/// `[y[index % 8][0..64], y[(index + 1) % 8][0..64]]`.
+///
+/// `index` must be in range `0..64`.
+#[inline(always)]
+pub unsafe fn load1024_y_aligned<T>(ptr: *const T, index: usize) {
+    debug_assert!(index < 64);
+    ops::ldy(
+        MemArgs {
+            ptr: ptr as *mut (),
+            reg_offset: index as u64,
+            size: MemSize::_128,
+        }
+        .encode(),
+    );
+}
+
+/// Load 1024 bits (128 bytes) from memory to
+/// `[z[index][0..64], z[(index + 1) % 64][0..64]]`.
+///
+/// `index` must be in range `0..64`.
+#[inline(always)]
+pub unsafe fn load1024_z_aligned<T>(ptr: *const T, index: usize) {
+    debug_assert!(index < 64);
+    ops::ldz(
+        MemArgs {
+            ptr: ptr as *mut (),
+            reg_offset: index as u64,
+            size: MemSize::_128,
+        }
+        .encode(),
+    );
+}
+
+/// Store 512 bits (64 bytes) `x[index % 8][0..64]` to memory.
+///
+/// `index` must be in range `0..64`.
+#[inline(always)]
+pub unsafe fn store512_x<T>(ptr: *mut T, index: usize) {
+    debug_assert!(index < 64);
+    ops::stx(
+        MemArgs {
+            ptr: ptr as *mut (),
+            reg_offset: index as u64,
+            size: MemSize::_64,
+        }
+        .encode(),
+    );
+}
+
+/// Store 512 bits (64 bytes) `y[index % 8][0..64]` to memory.
+///
+/// `index` must be in range `0..64`.
+#[inline(always)]
+pub unsafe fn store512_y<T>(ptr: *mut T, index: usize) {
+    debug_assert!(index < 64);
+    ops::sty(
+        MemArgs {
+            ptr: ptr as *mut (),
+            reg_offset: index as u64,
+            size: MemSize::_64,
+        }
+        .encode(),
+    );
+}
+
+/// Store 512 bits (64 bytes) `z[index][0..64]` to memory.
+///
+/// `index` must be in range `0..64`.
+#[inline(always)]
+pub unsafe fn store512_z<T>(ptr: *mut T, index: usize) {
+    debug_assert!(index < 64);
+    ops::stz(
+        MemArgs {
+            ptr: ptr as *mut (),
+            reg_offset: index as u64,
+            size: MemSize::_64,
+        }
+        .encode(),
+    );
+}
+
+/// Store 512 bits (64 bytes) `z[index][0..64]` to memory with interleaving.
+///
+/// `index` must be in range `0..64`.
+#[inline(always)]
+pub unsafe fn store512_z_interleaved<T>(ptr: *mut T, index: usize) {
+    debug_assert!(index < 64);
+    ops::stzi(
+        MemArgs {
+            ptr: ptr as *mut (),
+            reg_offset: index as u64,
+            size: MemSize::_64,
+        }
+        .encode(),
+    );
+}
+
+/// Store 1024 bits (128 bytes to memory)
+/// `[x[index % 8][0..64], x[(index + 1) % 8][0..64]]`.
+///
+/// `index` must be in range `0..64`.
+#[inline(always)]
+pub unsafe fn store1024_x_aligned<T>(ptr: *mut T, index: usize) {
+    debug_assert!(index < 64);
+    ops::stx(
+        MemArgs {
+            ptr: ptr as *mut (),
+            reg_offset: index as u64,
+            size: MemSize::_128,
+        }
+        .encode(),
+    );
+}
+
+/// Store 1024 bits (128 bytes to memory)
+/// `[y[index % 8][0..64], y[(index + 1) % 8][0..64]]`.
+///
+/// `index` must be in range `0..64`.
+#[inline(always)]
+pub unsafe fn store1024_y_aligned<T>(ptr: *mut T, index: usize) {
+    debug_assert!(index < 64);
+    ops::sty(
+        MemArgs {
+            ptr: ptr as *mut (),
+            reg_offset: index as u64,
+            size: MemSize::_128,
+        }
+        .encode(),
+    );
+}
+
+/// Store 1024 bits (128 bytes to memory)
+/// `[z[index][0..64], z[(index + 1) % 64][0..64]]`.
+///
+/// `index` must be in range `0..64`.
+#[inline(always)]
+pub unsafe fn store1024_z_aligned<T>(ptr: *mut T, index: usize) {
+    debug_assert!(index < 64);
+    ops::stz(
+        MemArgs {
+            ptr: ptr as *mut (),
+            reg_offset: index as u64,
+            size: MemSize::_128,
+        }
+        .encode(),
+    );
 }
