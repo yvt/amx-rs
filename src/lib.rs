@@ -296,3 +296,32 @@ pub unsafe fn store1024_z_aligned<T>(ptr: *mut T, index: usize) {
         .encode(),
     );
 }
+
+/// Calculate the outer product of `x: [i16; 32]` and `y: [i16; 32]` and write
+/// the output to every second row of `z: [[i16; 32]; 64]`.
+///
+/// `z_index` must be in range `0..64`. Only the least significant bit of
+/// `z_index` will be taken into consideration.
+#[inline(always)]
+pub unsafe fn outer_product_i16_xy_to_z(
+    x_offset_bytes: usize,
+    y_offset_bytes: usize,
+    z_index: usize,
+    accumulate: bool,
+    ignore_x: bool,
+    ignore_y: bool,
+) {
+    debug_assert!(x_offset_bytes < 0x200);
+    debug_assert!(y_offset_bytes < 0x200);
+    debug_assert!(z_index < 64);
+    // TODO: widening (i32 output)
+    // TODO: vector output (reducing)
+    ops::mac16(
+        (y_offset_bytes
+            | (x_offset_bytes << 10)
+            | (z_index << 20)
+            | (((!accumulate) as usize) << 27)
+            | ((ignore_x as usize) << 28)
+            | ((ignore_y as usize) << 29)) as u64,
+    );
+}
