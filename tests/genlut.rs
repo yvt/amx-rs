@@ -8,7 +8,7 @@ fn init() {
 #[quickcheck_macros::quickcheck]
 fn qc_genlut_lut8x16(
     table_row: usize,
-    index_row: usize,
+    index_offset: usize,
     out_row: usize,
     mut indices: Vec<u8>,
     mut values: Vec<u8>,
@@ -17,27 +17,42 @@ fn qc_genlut_lut8x16(
     indices.resize_with(32, u8::default);
     let out_row = out_row % 8;
     let table_row = table_row % 8;
-    let index_row = index_row % 8;
-    if table_row == index_row {
+    let index_offset = index_offset % 512;
+    if overlaps(
+        index_offset..index_offset + 64,
+        table_row * 64..table_row * 64 + 64,
+    ) || overlaps(
+        index_offset..index_offset + 64,
+        table_row * 64 + 512..table_row * 64 + 64 + 512,
+    ) {
         return TestResult::discard();
     }
-
-    indices.resize_with(64, u8::default); // extra for loading
 
     log::debug!("values = {:x?}", values);
     log::debug!("indices = {:x?}", indices);
     log::debug!("table_row = {:x?}", table_row);
-    log::debug!("index_row = {:x?}", index_row);
+    log::debug!("index_offset = {:x?}", index_offset);
     log::debug!("out_row = {:x?}", out_row);
 
     let mut got = [0u8; 64];
     let all_x;
     unsafe {
         amx::enable();
+        {
+            indices.resize_with(64, u8::default);
+
+            // Load `indices` at byte offset `index_offset`
+            let mut index_row_1 = [0u8; 64];
+            let mut index_row_2 = [0u8; 64];
+            let sub = index_offset % 64;
+            index_row_1[sub..].copy_from_slice(&indices[..64 - sub]);
+            index_row_2[..sub].copy_from_slice(&indices[64 - sub..]);
+            amx::load512_x(index_row_1.as_ptr(), index_offset / 64);
+            amx::load512_x(index_row_2.as_ptr(), index_offset / 64 + 1);
+        }
         amx::load512_x(values.as_ptr(), table_row);
-        amx::load512_x(indices.as_ptr(), index_row);
         amx::ops::op_in::<22>(
-            ((index_row as u64) << 6)
+            (index_offset as u64)
                 | ((out_row as u64) << 20)
                 | (1 << 53)
                 | (1 << 55)
@@ -52,7 +67,6 @@ fn qc_genlut_lut8x16(
     let expected: Vec<u8> = (0..64)
         .map(|i| {
             let idx = (indices[i / 2] >> (i % 2 * 4)) as usize & 0xf;
-            // TODO: suboffset inside the row?
             values[idx]
         })
         .collect();
