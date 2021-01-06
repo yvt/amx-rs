@@ -8,6 +8,7 @@ fn init() {
 #[quickcheck_macros::quickcheck]
 fn qc_genlut_lut8x16(
     table_row: usize,
+    index_row: usize,
     out_row: usize,
     mut indices: Vec<u8>,
     mut values: Vec<u8>,
@@ -16,7 +17,8 @@ fn qc_genlut_lut8x16(
     indices.resize_with(32, u8::default);
     let out_row = out_row % 8;
     let table_row = table_row % 8;
-    if table_row == 0 {
+    let index_row = index_row % 8;
+    if table_row == index_row {
         return TestResult::discard();
     }
 
@@ -25,6 +27,7 @@ fn qc_genlut_lut8x16(
     log::debug!("values = {:x?}", values);
     log::debug!("indices = {:x?}", indices);
     log::debug!("table_row = {:x?}", table_row);
+    log::debug!("index_row = {:x?}", index_row);
     log::debug!("out_row = {:x?}", out_row);
 
     let mut got = [0u8; 64];
@@ -32,9 +35,10 @@ fn qc_genlut_lut8x16(
     unsafe {
         amx::enable();
         amx::load512_x(values.as_ptr(), table_row);
-        amx::load512_x(indices.as_ptr(), 0); // TODO: make this dynamic
+        amx::load512_x(indices.as_ptr(), index_row);
         amx::ops::op_in::<22>(
-            ((out_row as u64) << 20)
+            ((index_row as u64) << 6)
+                | ((out_row as u64) << 20)
                 | (1 << 53)
                 | (1 << 55)
                 | (1 << 56)
