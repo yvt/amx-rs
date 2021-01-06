@@ -297,6 +297,33 @@ pub unsafe fn store1024_z_aligned<T>(ptr: *mut T, index: usize) {
     );
 }
 
+/// Read the whole contents of `x`.
+pub unsafe fn read_x() -> [u8; 512] {
+    let mut ret = std::mem::MaybeUninit::uninit();
+    for i in 0..8 {
+        store512_x((ret.as_mut_ptr() as *mut u8).offset(i as isize * 64), i);
+    }
+    ret.assume_init()
+}
+
+/// Read the whole contents of `y`.
+pub unsafe fn read_y() -> [u8; 512] {
+    let mut ret = std::mem::MaybeUninit::uninit();
+    for i in 0..8 {
+        store512_y((ret.as_mut_ptr() as *mut u8).offset(i as isize * 64), i);
+    }
+    ret.assume_init()
+}
+
+/// Read the whole contents of `z`.
+pub unsafe fn read_z() -> [u8; 4096] {
+    let mut ret = std::mem::MaybeUninit::uninit();
+    for i in 0..64 {
+        store512_z((ret.as_mut_ptr() as *mut u8).offset(i as isize * 64), i);
+    }
+    ret.assume_init()
+}
+
 /// Calculate the outer product of `x: [i16; 32]` and `y: [i16; 32]` and write
 /// the output to every second row of `z: [[i16; 32]; 64]`.
 ///

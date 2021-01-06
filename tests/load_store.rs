@@ -1,4 +1,5 @@
 #![feature(asm)]
+#![feature(array_chunks)]
 use aligned_box::AlignedBox;
 use itertools::iproduct;
 
@@ -180,18 +181,18 @@ fn load_and_check_register() {
         }
 
         // Read the whole register set
-        let mut got: Vec<u64> = vec![0x1111_1111_1111_1111; reg_size];
-        for i in 0..reg_size / 8 {
-            unsafe {
-                store_generic(
-                    got[i * 8..].as_mut_ptr() as *mut (),
-                    i,
-                    MemSize::_64,
-                    reg,
-                    false,
-                );
+        let got = unsafe {
+            match reg {
+                0 => amx::read_x().to_vec(),
+                1 => amx::read_y().to_vec(),
+                2 => amx::read_z().to_vec(),
+                _ => unreachable!(),
             }
-        }
+        };
+        let got: Vec<u64> = got
+            .array_chunks::<8>()
+            .map(|x| u64::from_le_bytes(*x))
+            .collect();
 
         // Calculate the expected result
         let mut expected: Vec<u64> = pat2[0..reg_size].to_owned();
