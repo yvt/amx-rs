@@ -9,6 +9,7 @@ fn init() {
 fn qc_genlut_lut8x16(
     table_row: usize,
     index_offset: usize,
+    indices_in_y: bool,
     out_row: usize,
     mut indices: Vec<u8>,
     mut values: Vec<u8>,
@@ -33,6 +34,7 @@ fn qc_genlut_lut8x16(
     log::debug!("table_row = {:x?}", table_row);
     log::debug!("index_offset = {:x?}", index_offset);
     log::debug!("out_row = {:x?}", out_row);
+    log::debug!("indices_in_y = {:x?}", indices_in_y);
 
     let mut got = [0u8; 64];
     let all_x;
@@ -47,14 +49,22 @@ fn qc_genlut_lut8x16(
             let sub = index_offset % 64;
             index_row_1[sub..].copy_from_slice(&indices[..64 - sub]);
             index_row_2[..sub].copy_from_slice(&indices[64 - sub..]);
-            amx::load512_x(index_row_1.as_ptr(), index_offset / 64);
-            amx::load512_x(index_row_2.as_ptr(), index_offset / 64 + 1);
+            if indices_in_y {
+                amx::load512_y(index_row_1.as_ptr(), index_offset / 64);
+                amx::load512_y(index_row_2.as_ptr(), index_offset / 64 + 1);
+            } else {
+                amx::load512_x(index_row_1.as_ptr(), index_offset / 64);
+                amx::load512_x(index_row_2.as_ptr(), index_offset / 64 + 1);
+            }
         }
         amx::load512_x(values.as_ptr(), table_row);
         amx::ops::op_in::<22>(
             (index_offset as u64)
                 | ((out_row as u64) << 20)
+                // TODO: there's something at bit 25, 26
+                | ((indices_in_y as u64) << 10)
                 | (1 << 53)
+                // TODO: there's something at bit 54
                 | (1 << 55)
                 | (1 << 56)
                 | ((table_row as u64) << 60),
