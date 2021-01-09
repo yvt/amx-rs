@@ -70,6 +70,24 @@ pub mod prelude {
 }
 
 /// A high-level wrapper for AMX instructions.
+///
+/// An application can use this wrapper in one of the following ways:
+///
+///  - On a supported system, construct an [`AmxCtx`] by calling
+///    [`AmxCtx::new`]. `AmxCtx` derefs to [`amx::nativeops::AmxOps`], which
+///    implements [`AmxOps`]​ (the low-level wrapper), which has a
+///    blanket impl of `Amx`.
+///
+///  - On a supported system, construct [`amx::nativeops::AmxOps`] directly by
+///    calling [`amx::nativeops::AmxOps::new`]. This is unsafe because it does
+///    not enable the current thread's AMX context automatically or check if AMX
+///    is really available.
+///
+///  - On any system, construct [`AmxEmuCtx`] by calling [`AmxEmuCtx::default`].
+///    It implements [`AmxOps`], which has a blanket impl of `Amx`.
+///
+/// [`amx::nativeops::AmxOps`]: crate::nativeops::AmxOps
+/// [`amx::nativeops::AmxOps::new`]: crate::nativeops::AmxOps::new
 pub trait Amx: crate::ops::AmxOps {
     /// Load 512 bits (64 bytes) from memory to the specified register row.
     #[inline(always)]
