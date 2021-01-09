@@ -47,13 +47,14 @@
 //! ```
 #![feature(asm)]
 
-// TODO: mod genlut;
+mod genlut;
 mod load_store;
 mod nativectx;
 pub mod nativeops;
 mod ops;
 mod regs;
 pub use crate::{
+    genlut::*,
     load_store::*,
     nativectx::{AmxCtx, NewAmxCtxError},
     ops::AmxOps,
@@ -199,6 +200,12 @@ pub trait Amx: crate::ops::AmxOps {
                 | ((x_offset_bytes.is_none() as usize) << 28)
                 | ((y_offset_bytes.is_none() as usize) << 29)) as u64,
         );
+    }
+
+    /// Perform (reverse) table lookup.
+    #[inline(always)]
+    fn lut(&mut self, input: impl LutIn, table: XRow, output: impl LutOut, ty: impl LutTy) {
+        genlut::lut(self, input, table, output, ty);
     }
 }
 
