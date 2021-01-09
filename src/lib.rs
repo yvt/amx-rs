@@ -51,6 +51,7 @@
 //! ```
 #![feature(asm)]
 
+mod genlut;
 pub mod ops;
 
 /// Enable the coprocessor.
