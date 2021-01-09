@@ -5,11 +5,11 @@ fn init() {
     let _ = env_logger::builder().is_test(true).try_init();
 }
 
-#[quickcheck_macros::quickcheck]
-
 fn overlaps(x: std::ops::Range<usize>, y: std::ops::Range<usize>) -> bool {
     x.start < y.end && x.end > y.start
 }
+
+#[quickcheck_macros::quickcheck]
 fn qc_genlut_lut8x16(
     table_row: usize,
     index_offset: usize,
