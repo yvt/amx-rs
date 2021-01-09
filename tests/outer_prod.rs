@@ -1,4 +1,4 @@
-#![feature(asm)]
+use amx::prelude::*;
 use itertools::iproduct;
 
 fn init() {
@@ -29,16 +29,16 @@ fn read_array_wrapping<T: Copy, const N: usize>(a: &[T], i: usize) -> [T; N] {
 fn outer_product_i16_xy_to_z() {
     init();
     unsafe {
-        amx::enable();
+        let mut ctx = amx::AmxCtx::new().unwrap();
 
         let mut rng = Xorshift32(0x114514);
         let in_x: Vec<u8> = (0..512).map(|_| rng.next() as u8).collect();
         let in_y: Vec<u8> = (0..512).map(|_| rng.next() as u8).collect();
-        let mut expected_z = amx::read_z();
+        let mut expected_z = ctx.read_z();
 
         for i in 0..8 {
-            amx::load512_x(&in_x[i * 64], i);
-            amx::load512_y(&in_y[i * 64], i);
+            ctx.load512_x(&in_x[i * 64], i);
+            ctx.load512_y(&in_y[i * 64], i);
         }
 
         log::info!("x = {:?}", *(in_x.as_ptr() as *const [[u16; 32]; 8]));
@@ -54,7 +54,7 @@ fn outer_product_i16_xy_to_z() {
                 (x_offset, y_offset, z_index)
             );
 
-            amx::outer_product_i16_xy_to_z(
+            ctx.outer_product_i16_xy_to_z(
                 x_offset, y_offset, z_index, false, // don't accumulate
                 false, // use X
                 false, // use Y
@@ -74,7 +74,7 @@ fn outer_product_i16_xy_to_z() {
             }
 
             // Get the actual answer
-            let got_z = amx::read_z();
+            let got_z = ctx.read_z();
 
             assert_eq!(
                 std::mem::transmute::<_, [[u16; 32]; 64]>(got_z),

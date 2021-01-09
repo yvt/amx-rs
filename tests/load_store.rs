@@ -1,6 +1,6 @@
-#![feature(asm)]
 #![feature(array_chunks)]
 use aligned_box::AlignedBox;
+use amx::{prelude::*, AmxOps};
 use itertools::iproduct;
 
 fn init() {
@@ -25,55 +25,69 @@ impl MemSize {
     }
 }
 
-unsafe fn load_generic<T>(ptr: *const T, index: usize, size: MemSize, reg: u8, interleaved: bool) {
+unsafe fn load_generic<T>(
+    ctx: &mut impl AmxOps,
+    ptr: *const T,
+    index: usize,
+    size: MemSize,
+    reg: u8,
+    interleaved: bool,
+) {
     match (size, reg, interleaved) {
         (MemSize::_64, 0, false) => {
-            amx::load512_x(ptr, index);
+            ctx.load512_x(ptr, index);
         }
         (MemSize::_64, 1, false) => {
-            amx::load512_y(ptr, index);
+            ctx.load512_y(ptr, index);
         }
         (MemSize::_64, 2, false) => {
-            amx::load512_z(ptr, index);
+            ctx.load512_z(ptr, index);
         }
         (MemSize::_64, 2, true) => {
-            amx::load512_z_interleaved(ptr, index);
+            ctx.load512_z_interleaved(ptr, index);
         }
         (MemSize::_128, 0, false) => {
-            amx::load1024_x_aligned(ptr, index);
+            ctx.load1024_x_aligned(ptr, index);
         }
         (MemSize::_128, 1, false) => {
-            amx::load1024_y_aligned(ptr, index);
+            ctx.load1024_y_aligned(ptr, index);
         }
         (MemSize::_128, 2, false) => {
-            amx::load1024_z_aligned(ptr, index);
+            ctx.load1024_z_aligned(ptr, index);
         }
         _ => unreachable!(),
     }
 }
 
-unsafe fn store_generic<T>(ptr: *mut T, index: usize, size: MemSize, reg: u8, interleaved: bool) {
+unsafe fn store_generic<T>(
+    ctx: &mut impl AmxOps,
+    ptr: *mut T,
+    index: usize,
+    size: MemSize,
+    reg: u8,
+    interleaved: bool,
+) {
     match (size, reg, interleaved) {
         (MemSize::_64, 0, false) => {
-            amx::store512_x(ptr, index);
+            ctx.store512_x(ptr, index);
         }
         (MemSize::_64, 1, false) => {
-            amx::store512_y(ptr, index);
+            ctx.store512_y(ptr, index);
         }
         (MemSize::_64, 2, false) => {
-            amx::store512_z(ptr, index);
+            ctx.store512_z(ptr, index);
         }
         (MemSize::_64, 2, true) => {
-            amx::store512_z_interleaved(ptr, index);
+            ctx.store512_z_interleaved(ptr, index);
         }
         (MemSize::_128, 0, false) => {
-            amx::store1024_x_aligned(ptr, index);
+            ctx.store1024_x_aligned(ptr, index);
         }
         (MemSize::_128, 1, false) => {
-            amx::store1024_y_aligned(ptr, index);
+            ctx.store1024_y_aligned(ptr, index);
         }
         (MemSize::_128, 2, false) => {
-            amx::store1024_z_aligned(ptr, index);
+            ctx.store1024_z_aligned(ptr, index);
         }
         _ => unreachable!(),
     }
@@ -82,7 +96,7 @@ unsafe fn store_generic<T>(ptr: *mut T, index: usize, size: MemSize, reg: u8, in
 #[test]
 fn copy_and_check_memory() {
     init();
-    unsafe { amx::enable() };
+    let mut ctx = amx::AmxCtx::new().unwrap();
 
     let mut src: AlignedBox<[u16]> = AlignedBox::slice_from_default(0x80, 4096).unwrap();
     for (i, src) in src.iter_mut().enumerate() {
@@ -119,20 +133,25 @@ fn copy_and_check_memory() {
             .collect();
 
         unsafe {
-            load_generic(src.as_ptr(), reg_offset, size, reg, interleaved);
-            store_generic(got.as_mut_ptr(), reg_offset, size, reg, interleaved);
+            load_generic(&mut *ctx, src.as_ptr(), reg_offset, size, reg, interleaved);
+            store_generic(
+                &mut *ctx,
+                got.as_mut_ptr(),
+                reg_offset,
+                size,
+                reg,
+                interleaved,
+            );
         }
 
         assert_eq!(*got, *expected);
     }
-
-    unsafe { amx::disable() };
 }
 
 #[test]
 fn load_and_check_register() {
     init();
-    unsafe { amx::enable() };
+    let mut ctx = amx::AmxCtx::new().unwrap();
 
     let mut pat1: AlignedBox<[u64]> = AlignedBox::slice_from_default(0x80, 16).unwrap();
     for (i, pat1) in pat1.iter_mut().enumerate() {
@@ -166,6 +185,7 @@ fn load_and_check_register() {
         for i in 0..reg_size / 8 {
             unsafe {
                 load_generic(
+                    &mut *ctx,
                     pat2[i * 8..].as_ptr() as *mut (),
                     i,
                     MemSize::_64,
@@ -177,17 +197,15 @@ fn load_and_check_register() {
 
         // Load `pat1` to somewhere in the register
         unsafe {
-            load_generic(pat1.as_ptr(), reg_offset, size, reg, interleaved);
+            load_generic(&mut *ctx, pat1.as_ptr(), reg_offset, size, reg, interleaved);
         }
 
         // Read the whole register set
-        let got = unsafe {
-            match reg {
-                0 => amx::read_x().to_vec(),
-                1 => amx::read_y().to_vec(),
-                2 => amx::read_z().to_vec(),
-                _ => unreachable!(),
-            }
+        let got = match reg {
+            0 => ctx.read_x().to_vec(),
+            1 => ctx.read_y().to_vec(),
+            2 => ctx.read_z().to_vec(),
+            _ => unreachable!(),
         };
         let got: Vec<u64> = got
             .array_chunks::<8>()
@@ -230,6 +248,4 @@ fn load_and_check_register() {
             got, expected
         );
     }
-
-    unsafe { amx::disable() };
 }

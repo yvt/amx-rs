@@ -1,4 +1,5 @@
 #![feature(array_map)]
+use amx::prelude::*;
 use quickcheck::TestResult;
 
 fn init() {
@@ -43,7 +44,7 @@ fn qc_genlut_lut8x16(
     let mut got = [0u8; 64];
     let all_x;
     unsafe {
-        amx::enable();
+        let mut ctx = amx::AmxCtx::new().unwrap();
         {
             indices.resize_with(64, u8::default);
 
@@ -54,15 +55,15 @@ fn qc_genlut_lut8x16(
             index_row_1[sub..].copy_from_slice(&indices[..64 - sub]);
             index_row_2[..sub].copy_from_slice(&indices[64 - sub..]);
             if indices_in_y {
-                amx::load512_y(index_row_1.as_ptr(), index_offset / 64);
-                amx::load512_y(index_row_2.as_ptr(), index_offset / 64 + 1);
+                ctx.load512_y(index_row_1.as_ptr(), index_offset / 64);
+                ctx.load512_y(index_row_2.as_ptr(), index_offset / 64 + 1);
             } else {
-                amx::load512_x(index_row_1.as_ptr(), index_offset / 64);
-                amx::load512_x(index_row_2.as_ptr(), index_offset / 64 + 1);
+                ctx.load512_x(index_row_1.as_ptr(), index_offset / 64);
+                ctx.load512_x(index_row_2.as_ptr(), index_offset / 64 + 1);
             }
         }
-        amx::load512_x(values.as_ptr(), table_row);
-        amx::ops::op_in::<22>(
+        ctx.load512_x(values.as_ptr(), table_row);
+        ctx.genlut(
             (index_offset as u64)
                 | ((out_row as u64) << 20)
                 // TODO: there's something at bit 25, 26
@@ -73,9 +74,8 @@ fn qc_genlut_lut8x16(
                 | (1 << 56)
                 | ((table_row as u64) << 60),
         );
-        amx::store512_x(got.as_mut_ptr(), out_row);
-        all_x = std::mem::transmute::<_, [[u64; 8]; 8]>(amx::read_x());
-        amx::disable();
+        ctx.store512_x(got.as_mut_ptr(), out_row);
+        all_x = std::mem::transmute::<_, [[u64; 8]; 8]>(ctx.read_x());
     }
 
     let expected: Vec<u8> = (0..64)
