@@ -6,7 +6,6 @@ use crate::{
 /// The parameters of AMX's load and store instructions.
 #[derive(Copy, Clone)]
 struct MemArgs {
-    ptr: *mut (),
     /// 6-bit register offset (in units of `0x40`) in range `0..64`
     reg_offset: u64,
     size: MemSize,
@@ -17,8 +16,8 @@ impl MemArgs {
     fn encode(self) -> u64 {
         debug_assert!(self.reg_offset < 64);
 
-        (self.ptr as u64) & 0x00ff_ffff_ffff_ffff
-            | (self.reg_offset << 56)
+        // The pointer is passed by a separate parameter when using `AmxOps`
+        (self.reg_offset << 56)
             // [61] - ?
             | ((self.size as u64) << 62)
         // [63] - ?
@@ -99,11 +98,11 @@ impl LoadStore for XRow {
         assert!(index < 8);
         ops.ldx(
             MemArgs {
-                ptr: ptr as *mut (),
                 reg_offset: index as u64,
                 size: MemSize::_64,
             }
             .encode(),
+            ptr as *mut (),
         );
     }
 
@@ -114,11 +113,11 @@ impl LoadStore for XRow {
         assert!(index < 8);
         ops.stx(
             MemArgs {
-                ptr: ptr as *mut (),
                 reg_offset: index as u64,
                 size: MemSize::_64,
             }
             .encode(),
+            ptr as *mut (),
         );
     }
 
@@ -129,11 +128,11 @@ impl LoadStore for XRow {
         assert!(index < 8);
         ops.ldx(
             MemArgs {
-                ptr: ptr as *mut (),
                 reg_offset: index as u64,
                 size: MemSize::_128,
             }
             .encode(),
+            ptr as *mut (),
         );
     }
 
@@ -144,11 +143,11 @@ impl LoadStore for XRow {
         assert!(index < 8);
         ops.stx(
             MemArgs {
-                ptr: ptr as *mut (),
                 reg_offset: index as u64,
                 size: MemSize::_128,
             }
             .encode(),
+            ptr as *mut (),
         );
     }
 }
@@ -161,11 +160,11 @@ impl LoadStore for YRow {
         assert!(index < 8);
         ops.ldy(
             MemArgs {
-                ptr: ptr as *mut (),
                 reg_offset: index as u64,
                 size: MemSize::_64,
             }
             .encode(),
+            ptr as *mut (),
         );
     }
 
@@ -176,11 +175,11 @@ impl LoadStore for YRow {
         assert!(index < 8);
         ops.sty(
             MemArgs {
-                ptr: ptr as *mut (),
                 reg_offset: index as u64,
                 size: MemSize::_64,
             }
             .encode(),
+            ptr as *mut (),
         );
     }
 
@@ -191,11 +190,11 @@ impl LoadStore for YRow {
         assert!(index < 8);
         ops.ldy(
             MemArgs {
-                ptr: ptr as *mut (),
                 reg_offset: index as u64,
                 size: MemSize::_128,
             }
             .encode(),
+            ptr as *mut (),
         );
     }
 
@@ -206,11 +205,11 @@ impl LoadStore for YRow {
         assert!(index < 8);
         ops.sty(
             MemArgs {
-                ptr: ptr as *mut (),
                 reg_offset: index as u64,
                 size: MemSize::_128,
             }
             .encode(),
+            ptr as *mut (),
         );
     }
 }
@@ -223,11 +222,11 @@ impl LoadStore for ZRow {
         assert!(index < 64);
         ops.ldz(
             MemArgs {
-                ptr: ptr as *mut (),
                 reg_offset: index as u64,
                 size: MemSize::_64,
             }
             .encode(),
+            ptr as *mut (),
         );
     }
 
@@ -238,11 +237,11 @@ impl LoadStore for ZRow {
         assert!(index < 64);
         ops.stz(
             MemArgs {
-                ptr: ptr as *mut (),
                 reg_offset: index as u64,
                 size: MemSize::_64,
             }
             .encode(),
+            ptr as *mut (),
         );
     }
 
@@ -253,11 +252,11 @@ impl LoadStore for ZRow {
         assert!(index < 64);
         ops.ldz(
             MemArgs {
-                ptr: ptr as *mut (),
                 reg_offset: index as u64,
                 size: MemSize::_128,
             }
             .encode(),
+            ptr as *mut (),
         );
     }
 
@@ -268,11 +267,11 @@ impl LoadStore for ZRow {
         assert!(index < 64);
         ops.stz(
             MemArgs {
-                ptr: ptr as *mut (),
                 reg_offset: index as u64,
                 size: MemSize::_128,
             }
             .encode(),
+            ptr as *mut (),
         );
     }
 }
@@ -290,11 +289,11 @@ pub(crate) unsafe fn load512_z_interleaved<T>(
     assert!(index < 64);
     ops.ldzi(
         MemArgs {
-            ptr: ptr as *mut (),
             reg_offset: index as u64,
             size: MemSize::_64,
         }
         .encode(),
+        ptr as *mut (),
     );
 }
 
@@ -311,10 +310,10 @@ pub(crate) unsafe fn store512_z_interleaved<T>(
     assert!(index < 64);
     ops.stzi(
         MemArgs {
-            ptr: ptr as *mut (),
             reg_offset: index as u64,
             size: MemSize::_64,
         }
         .encode(),
+        ptr as *mut (),
     );
 }

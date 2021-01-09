@@ -195,36 +195,36 @@ impl<'a> AmxOps<'a> {
 
 unsafe impl crate::ops::AmxOps for AmxOps<'_> {
     #[inline(always)]
-    unsafe fn ldx(&mut self, x: u64) {
-        ldx(x);
+    unsafe fn ldx(&mut self, x: u64, ptr: *mut ()) {
+        ldx(x | (ptr as u64 & 0x00ff_ffff_ffff_ffff));
     }
     #[inline(always)]
-    unsafe fn ldy(&mut self, x: u64) {
-        ldy(x);
+    unsafe fn ldy(&mut self, x: u64, ptr: *mut ()) {
+        ldy(x | (ptr as u64 & 0x00ff_ffff_ffff_ffff));
     }
     #[inline(always)]
-    unsafe fn stx(&mut self, x: u64) {
-        stx(x);
+    unsafe fn stx(&mut self, x: u64, ptr: *mut ()) {
+        stx(x | (ptr as u64 & 0x00ff_ffff_ffff_ffff));
     }
     #[inline(always)]
-    unsafe fn sty(&mut self, x: u64) {
-        sty(x);
+    unsafe fn sty(&mut self, x: u64, ptr: *mut ()) {
+        sty(x | (ptr as u64 & 0x00ff_ffff_ffff_ffff));
     }
     #[inline(always)]
-    unsafe fn ldz(&mut self, x: u64) {
-        ldz(x);
+    unsafe fn ldz(&mut self, x: u64, ptr: *mut ()) {
+        ldz(x | (ptr as u64 & 0x00ff_ffff_ffff_ffff));
     }
     #[inline(always)]
-    unsafe fn stz(&mut self, x: u64) {
-        stz(x);
+    unsafe fn stz(&mut self, x: u64, ptr: *mut ()) {
+        stz(x | (ptr as u64 & 0x00ff_ffff_ffff_ffff));
     }
     #[inline(always)]
-    unsafe fn ldzi(&mut self, x: u64) {
-        ldzi(x);
+    unsafe fn ldzi(&mut self, x: u64, ptr: *mut ()) {
+        ldzi(x | (ptr as u64 & 0x00ff_ffff_ffff_ffff));
     }
     #[inline(always)]
-    unsafe fn stzi(&mut self, x: u64) {
-        stzi(x);
+    unsafe fn stzi(&mut self, x: u64, ptr: *mut ()) {
+        stzi(x | (ptr as u64 & 0x00ff_ffff_ffff_ffff));
     }
     #[inline(always)]
     fn extrx(&mut self, x: u64) {

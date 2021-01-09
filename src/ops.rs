@@ -1,13 +1,16 @@
 /// Exposes all AMX instructions except `set` and `clr` as trait methods.
+///
+/// Load and store operations receive a pointer by the additional parameter to
+/// allow emulation on a system with a different pointer size.
 pub unsafe trait AmxOps {
-    unsafe fn ldx(&mut self, x: u64);
-    unsafe fn ldy(&mut self, x: u64);
-    unsafe fn stx(&mut self, x: u64);
-    unsafe fn sty(&mut self, x: u64);
-    unsafe fn ldz(&mut self, x: u64);
-    unsafe fn stz(&mut self, x: u64);
-    unsafe fn ldzi(&mut self, x: u64);
-    unsafe fn stzi(&mut self, x: u64);
+    unsafe fn ldx(&mut self, x: u64, ptr: *mut ());
+    unsafe fn ldy(&mut self, x: u64, ptr: *mut ());
+    unsafe fn stx(&mut self, x: u64, ptr: *mut ());
+    unsafe fn sty(&mut self, x: u64, ptr: *mut ());
+    unsafe fn ldz(&mut self, x: u64, ptr: *mut ());
+    unsafe fn stz(&mut self, x: u64, ptr: *mut ());
+    unsafe fn ldzi(&mut self, x: u64, ptr: *mut ());
+    unsafe fn stzi(&mut self, x: u64, ptr: *mut ());
     fn extrx(&mut self, x: u64);
     fn extry(&mut self, x: u64);
     fn fma64(&mut self, x: u64);
