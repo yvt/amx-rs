@@ -3,6 +3,7 @@ name = "amx"
 version = "0.0.0"
 authors = ["yvt <i@yvt.jp>"]
 edition = "2018"
+license = "MIT/Apache-2.0"
 
 [features]
 default = ["either"]

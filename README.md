@@ -49,3 +49,5 @@ struct AmxState {
     z: [[u8; 64]; 64],
 }
 ```
+
+License: MIT/Apache-2.0
