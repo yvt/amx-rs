@@ -1,4 +1,4 @@
-use amx::prelude::*;
+use amx::{prelude::*, XRow, YRow};
 use itertools::iproduct;
 
 fn init() {
@@ -37,8 +37,8 @@ fn outer_product_i16_xy_to_z() {
         let mut expected_z = ctx.read_z();
 
         for i in 0..8 {
-            ctx.load512_x(&in_x[i * 64], i);
-            ctx.load512_y(&in_y[i * 64], i);
+            ctx.load512(&in_x[i * 64], XRow(i));
+            ctx.load512(&in_y[i * 64], YRow(i));
         }
 
         log::info!("x = {:?}", *(in_x.as_ptr() as *const [[u16; 32]; 8]));

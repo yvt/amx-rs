@@ -1,6 +1,6 @@
 #![feature(array_chunks)]
 use aligned_box::AlignedBox;
-use amx::{prelude::*, AmxOps};
+use amx::{prelude::*, AmxOps, XRow, YRow, ZRow};
 use itertools::iproduct;
 
 fn init() {
@@ -35,25 +35,25 @@ unsafe fn load_generic<T>(
 ) {
     match (size, reg, interleaved) {
         (MemSize::_64, 0, false) => {
-            ctx.load512_x(ptr, index);
+            ctx.load512(ptr, XRow(index));
         }
         (MemSize::_64, 1, false) => {
-            ctx.load512_y(ptr, index);
+            ctx.load512(ptr, YRow(index));
         }
         (MemSize::_64, 2, false) => {
-            ctx.load512_z(ptr, index);
+            ctx.load512(ptr, ZRow(index));
         }
         (MemSize::_64, 2, true) => {
-            ctx.load512_z_interleaved(ptr, index);
+            ctx.load512_interleaved(ptr, ZRow(index));
         }
         (MemSize::_128, 0, false) => {
-            ctx.load1024_x_aligned(ptr, index);
+            ctx.load1024_aligned(ptr, XRow(index));
         }
         (MemSize::_128, 1, false) => {
-            ctx.load1024_y_aligned(ptr, index);
+            ctx.load1024_aligned(ptr, YRow(index));
         }
         (MemSize::_128, 2, false) => {
-            ctx.load1024_z_aligned(ptr, index);
+            ctx.load1024_aligned(ptr, ZRow(index));
         }
         _ => unreachable!(),
     }
@@ -69,25 +69,25 @@ unsafe fn store_generic<T>(
 ) {
     match (size, reg, interleaved) {
         (MemSize::_64, 0, false) => {
-            ctx.store512_x(ptr, index);
+            ctx.store512(ptr, XRow(index));
         }
         (MemSize::_64, 1, false) => {
-            ctx.store512_y(ptr, index);
+            ctx.store512(ptr, YRow(index));
         }
         (MemSize::_64, 2, false) => {
-            ctx.store512_z(ptr, index);
+            ctx.store512(ptr, ZRow(index));
         }
         (MemSize::_64, 2, true) => {
-            ctx.store512_z_interleaved(ptr, index);
+            ctx.store512_interleaved(ptr, ZRow(index));
         }
         (MemSize::_128, 0, false) => {
-            ctx.store1024_x_aligned(ptr, index);
+            ctx.store1024_aligned(ptr, XRow(index));
         }
         (MemSize::_128, 1, false) => {
-            ctx.store1024_y_aligned(ptr, index);
+            ctx.store1024_aligned(ptr, YRow(index));
         }
         (MemSize::_128, 2, false) => {
-            ctx.store1024_z_aligned(ptr, index);
+            ctx.store1024_aligned(ptr, ZRow(index));
         }
         _ => unreachable!(),
     }
@@ -110,6 +110,9 @@ fn copy_and_check_memory() {
         &[false, true]
     ) {
         if interleaved && (reg != 2 || size != MemSize::_64) {
+            continue;
+        }
+        if reg != 2 && reg_offset >= 8 {
             continue;
         }
 
@@ -167,6 +170,9 @@ fn load_and_check_register() {
         &[false, true]
     ) {
         if interleaved && (reg != 2 || size != MemSize::_64) {
+            continue;
+        }
+        if reg != 2 && reg_offset >= 8 {
             continue;
         }
 

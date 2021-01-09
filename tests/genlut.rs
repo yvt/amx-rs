@@ -1,5 +1,5 @@
 #![feature(array_map)]
-use amx::prelude::*;
+use amx::{prelude::*, XRow, YRow};
 use quickcheck::TestResult;
 
 fn init() {
@@ -55,14 +55,14 @@ fn qc_genlut_lut8x16(
             index_row_1[sub..].copy_from_slice(&indices[..64 - sub]);
             index_row_2[..sub].copy_from_slice(&indices[64 - sub..]);
             if indices_in_y {
-                ctx.load512_y(index_row_1.as_ptr(), index_offset / 64);
-                ctx.load512_y(index_row_2.as_ptr(), index_offset / 64 + 1);
+                ctx.load512(index_row_1.as_ptr(), YRow(index_offset / 64));
+                ctx.load512(index_row_2.as_ptr(), YRow(index_offset / 64 + 1));
             } else {
-                ctx.load512_x(index_row_1.as_ptr(), index_offset / 64);
-                ctx.load512_x(index_row_2.as_ptr(), index_offset / 64 + 1);
+                ctx.load512(index_row_1.as_ptr(), XRow(index_offset / 64));
+                ctx.load512(index_row_2.as_ptr(), XRow(index_offset / 64 + 1));
             }
         }
-        ctx.load512_x(values.as_ptr(), table_row);
+        ctx.load512(values.as_ptr(), XRow(table_row));
         ctx.genlut(
             (index_offset as u64)
                 | ((out_row as u64) << 20)
@@ -74,7 +74,7 @@ fn qc_genlut_lut8x16(
                 | (1 << 56)
                 | ((table_row as u64) << 60),
         );
-        ctx.store512_x(got.as_mut_ptr(), out_row);
+        ctx.store512(got.as_mut_ptr(), XRow(out_row));
         all_x = std::mem::transmute::<_, [[u64; 8]; 8]>(ctx.read_x());
     }
 

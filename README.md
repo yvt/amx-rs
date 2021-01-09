@@ -15,14 +15,14 @@ which are found in Apple Silicon processors.
 ## Example
 
 ```rust
-use amx::Amx;
+use amx::{Amx, XRow, YRow};
 let mut ctx = amx::AmxCtx::new().unwrap();
 let x = [1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16,
          17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32i16];
 let y = [51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66,
          67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82i16];
-unsafe { ctx.load512_x(x.as_ptr(), 0) };
-unsafe { ctx.load512_y(y.as_ptr(), 0) };
+unsafe { ctx.load512(x.as_ptr(), XRow(0)) };
+unsafe { ctx.load512(y.as_ptr(), YRow(0)) };
 ctx.outer_product_i16_xy_to_z(
     0,     // input from X starting from byte offset 0
     0,     // input from Y starting from byte offset 0
