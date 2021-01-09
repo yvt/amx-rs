@@ -56,6 +56,41 @@ pub trait LoadStore {
     unsafe fn store1024_aligned<T>(&self, ops: &mut (impl AmxOps + ?Sized), ptr: *mut T);
 }
 
+#[cfg(feature = "either")]
+impl<Left: LoadStore, Right: LoadStore> LoadStore for either::Either<Left, Right> {
+    #[inline]
+    unsafe fn load512<T>(&self, ops: &mut (impl AmxOps + ?Sized), ptr: *const T) {
+        match self {
+            either::Left(x) => x.load512(ops, ptr),
+            either::Right(x) => x.load512(ops, ptr),
+        }
+    }
+
+    #[inline]
+    unsafe fn store512<T>(&self, ops: &mut (impl AmxOps + ?Sized), ptr: *mut T) {
+        match self {
+            either::Left(x) => x.store512(ops, ptr),
+            either::Right(x) => x.store512(ops, ptr),
+        }
+    }
+
+    #[inline]
+    unsafe fn load1024_aligned<T>(&self, ops: &mut (impl AmxOps + ?Sized), ptr: *const T) {
+        match self {
+            either::Left(x) => x.load1024_aligned(ops, ptr),
+            either::Right(x) => x.load1024_aligned(ops, ptr),
+        }
+    }
+
+    #[inline]
+    unsafe fn store1024_aligned<T>(&self, ops: &mut (impl AmxOps + ?Sized), ptr: *mut T) {
+        match self {
+            either::Left(x) => x.store1024_aligned(ops, ptr),
+            either::Right(x) => x.store1024_aligned(ops, ptr),
+        }
+    }
+}
+
 impl LoadStore for XRow {
     #[inline(always)]
     #[track_caller]

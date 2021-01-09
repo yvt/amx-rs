@@ -103,6 +103,17 @@ define_lut_ty! {
     (Normal, Index5, X8) => 15,
 }
 
+#[cfg(feature = "either")]
+impl<Left: LutTy, Right: LutTy> LutTy for either::Either<Left, Right> {
+    #[inline]
+    fn genlut_mode(&self) -> u64 {
+        match self {
+            either::Left(x) => x.genlut_mode(),
+            either::Right(x) => x.genlut_mode(),
+        }
+    }
+}
+
 /// The trait representing `genlut` instruction's input, which can be either
 /// [`XBytes`] or [`YBytes`].
 pub trait LutIn {
@@ -122,6 +133,17 @@ impl LutIn for YBytes {
     fn as_genlut_input_param(&self) -> u64 {
         debug_assert!(self.0 < 512);
         self.0 as u64 | (1u64 << 10) // "input is in Y"
+    }
+}
+
+#[cfg(feature = "either")]
+impl<Left: LutIn, Right: LutIn> LutIn for either::Either<Left, Right> {
+    #[inline]
+    fn as_genlut_input_param(&self) -> u64 {
+        match self {
+            either::Left(x) => x.as_genlut_input_param(),
+            either::Right(x) => x.as_genlut_input_param(),
+        }
     }
 }
 
@@ -152,6 +174,17 @@ impl LutOut for ZRow {
     fn as_genlut_output_param(&self) -> u64 {
         debug_assert!(self.0 < 64);
         ((self.0 as u64) << 20) | (1u64 << 26)
+    }
+}
+
+#[cfg(feature = "either")]
+impl<Left: LutOut, Right: LutOut> LutOut for either::Either<Left, Right> {
+    #[inline]
+    fn as_genlut_output_param(&self) -> u64 {
+        match self {
+            either::Left(x) => x.as_genlut_output_param(),
+            either::Right(x) => x.as_genlut_output_param(),
+        }
     }
 }
 

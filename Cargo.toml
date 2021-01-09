@@ -4,9 +4,11 @@ version = "0.0.0"
 authors = ["yvt <i@yvt.jp>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = ["either"]
 
 [dependencies]
+either = { version = "1.6.1", optional = true }
 
 [dev-dependencies]
 quickcheck_macros = "0.9.1"
@@ -14,5 +16,6 @@ aligned_box = "0.2.0"
 env_logger = "0.7"
 quickcheck = "0.9.2"
 itertools = "0.10.0"
+either = "1.6.1"
 clap = "3.0.0-beta.2"
 log = "0.4.11"
