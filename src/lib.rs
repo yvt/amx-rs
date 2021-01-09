@@ -47,6 +47,7 @@
 //! ```
 #![feature(asm)]
 
+mod emu;
 mod genlut;
 mod load_store;
 mod nativectx;
@@ -54,6 +55,7 @@ pub mod nativeops;
 mod ops;
 mod regs;
 pub use crate::{
+    emu::*,
     genlut::*,
     load_store::*,
     nativectx::{AmxCtx, NewAmxCtxError},
