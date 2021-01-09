@@ -11,7 +11,7 @@
 //! # Example
 //!
 //! ```rust
-//! use amx::{Amx, XRow, YRow};
+//! use amx::{Amx, XRow, YRow, XBytes, YBytes, ZRow};
 //! let mut ctx = amx::AmxCtx::new().unwrap();
 //! let x = [1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16,
 //!          17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32i16];
@@ -20,12 +20,10 @@
 //! unsafe { ctx.load512(x.as_ptr(), XRow(0)) };
 //! unsafe { ctx.load512(y.as_ptr(), YRow(0)) };
 //! ctx.outer_product_i16_xy_to_z(
-//!     0,     // input from X starting from byte offset 0
-//!     0,     // input from Y starting from byte offset 0
-//!     0,     // output to Z starting from row offset 0
-//!     false, // don't accumulate
-//!     false, // use X
-//!     false, // use Y
+//!     Some(XBytes(0)),    // input from X starting from byte offset 0
+//!     Some(YBytes(0)),    // input from Y starting from byte offset 0
+//!     ZRow(0),            // output to Z starting from row offset 0
+//!     false,              // don't accumulate
 //! );
 //! let z: [[i16; 32]; 64] = unsafe { std::mem::transmute(ctx.read_z()) };
 //! for (x_i, &x) in x.iter().enumerate() {
@@ -172,30 +170,34 @@ pub trait Amx: crate::ops::AmxOps {
     /// Calculate the outer product of `x: [i16; 32]` and `y: [i16; 32]` and write
     /// the output to every second row of `z: [[i16; 32]; 64]`.
     ///
+    /// If `x_offset_bytes` and/or `y_offset_bytes` are `None`, the respective
+    /// registers will be excluded from the operation (not performing
+    /// multiplication).
+    ///
     /// `z_index` must be in range `0..64`. Only the least significant bit of
     /// `z_index` will be taken into consideration.
     #[inline(always)]
     fn outer_product_i16_xy_to_z(
         &mut self,
-        x_offset_bytes: usize,
-        y_offset_bytes: usize,
-        z_index: usize,
+        x_offset_bytes: Option<XBytes>,
+        y_offset_bytes: Option<YBytes>,
+        z_index: ZRow,
         accumulate: bool,
-        ignore_x: bool,
-        ignore_y: bool,
     ) {
-        debug_assert!(x_offset_bytes < 0x200);
-        debug_assert!(y_offset_bytes < 0x200);
+        // FIXME: rustfmt doesn't like patterns in provided trait methods
+        let z_index = z_index.0;
+        debug_assert!(x_offset_bytes.unwrap_or_default().0 < 0x200);
+        debug_assert!(y_offset_bytes.unwrap_or_default().0 < 0x200);
         debug_assert!(z_index < 64);
         // TODO: widening (i32 output)
         // TODO: vector output (reducing)
         self.mac16(
-            (y_offset_bytes
-                | (x_offset_bytes << 10)
+            (y_offset_bytes.unwrap_or_default().0
+                | (x_offset_bytes.unwrap_or_default().0 << 10)
                 | (z_index << 20)
                 | (((!accumulate) as usize) << 27)
-                | ((ignore_x as usize) << 28)
-                | ((ignore_y as usize) << 29)) as u64,
+                | ((x_offset_bytes.is_none() as usize) << 28)
+                | ((y_offset_bytes.is_none() as usize) << 29)) as u64,
         );
     }
 }

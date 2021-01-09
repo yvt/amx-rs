@@ -17,3 +17,15 @@ pub struct YRow(pub usize);
 /// The row index must be in range `0..64`.
 #[derive(Default, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct ZRow(pub usize);
+
+/// A byte offset in `x` register set.
+///
+/// The byte offset must be in range `0..512`.
+#[derive(Default, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+pub struct XBytes(pub usize);
+
+/// A byte offset in `y` register set.
+///
+/// The byte offset must be in range `0..512`.
+#[derive(Default, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+pub struct YBytes(pub usize);

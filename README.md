@@ -15,7 +15,7 @@ which are found in Apple Silicon processors.
 ## Example
 
 ```rust
-use amx::{Amx, XRow, YRow};
+use amx::{Amx, XRow, YRow, XBytes, YBytes, ZRow};
 let mut ctx = amx::AmxCtx::new().unwrap();
 let x = [1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16,
          17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32i16];
@@ -24,12 +24,10 @@ let y = [51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66,
 unsafe { ctx.load512(x.as_ptr(), XRow(0)) };
 unsafe { ctx.load512(y.as_ptr(), YRow(0)) };
 ctx.outer_product_i16_xy_to_z(
-    0,     // input from X starting from byte offset 0
-    0,     // input from Y starting from byte offset 0
-    0,     // output to Z starting from row offset 0
-    false, // don't accumulate
-    false, // use X
-    false, // use Y
+    Some(XBytes(0)),    // input from X starting from byte offset 0
+    Some(YBytes(0)),    // input from Y starting from byte offset 0
+    ZRow(0),            // output to Z starting from row offset 0
+    false,              // don't accumulate
 );
 let z: [[i16; 32]; 64] = unsafe { std::mem::transmute(ctx.read_z()) };
 for (x_i, &x) in x.iter().enumerate() {

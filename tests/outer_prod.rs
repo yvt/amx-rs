@@ -1,4 +1,4 @@
-use amx::{prelude::*, XRow, YRow};
+use amx::{prelude::*, XBytes, XRow, YBytes, YRow, ZRow};
 use itertools::iproduct;
 
 fn init() {
@@ -55,9 +55,10 @@ fn outer_product_i16_xy_to_z() {
             );
 
             ctx.outer_product_i16_xy_to_z(
-                x_offset, y_offset, z_index, false, // don't accumulate
-                false, // use X
-                false, // use Y
+                Some(XBytes(x_offset)),
+                Some(YBytes(y_offset)),
+                ZRow(z_index),
+                false, // don't accumulate
             );
 
             // Calculate the expected answer

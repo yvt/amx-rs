@@ -1,4 +1,4 @@
-use amx::prelude::*;
+use amx::{prelude::*, XBytes, YBytes, ZRow};
 use clap::Clap;
 use std::time::Instant;
 
@@ -27,23 +27,23 @@ fn stress_loop(tid: usize) {
         let start = Instant::now();
         let count = 10_000_000;
         for _ in 0..count / 16 {
-            ctx.outer_product_i16_xy_to_z(0, 0, 0, true, false, false);
-            ctx.outer_product_i16_xy_to_z(0, 0, 1, true, false, false);
-            ctx.outer_product_i16_xy_to_z(0, 0, 0, true, false, false);
-            ctx.outer_product_i16_xy_to_z(0, 0, 1, true, false, false);
-            ctx.outer_product_i16_xy_to_z(0, 0, 0, true, false, false);
-            ctx.outer_product_i16_xy_to_z(0, 0, 1, true, false, false);
-            ctx.outer_product_i16_xy_to_z(0, 0, 0, true, false, false);
-            ctx.outer_product_i16_xy_to_z(0, 0, 1, true, false, false);
+            ctx.outer_product_i16_xy_to_z(Some(XBytes(0)), Some(YBytes(0)), ZRow(0), true);
+            ctx.outer_product_i16_xy_to_z(Some(XBytes(0)), Some(YBytes(0)), ZRow(1), true);
+            ctx.outer_product_i16_xy_to_z(Some(XBytes(0)), Some(YBytes(0)), ZRow(0), true);
+            ctx.outer_product_i16_xy_to_z(Some(XBytes(0)), Some(YBytes(0)), ZRow(1), true);
+            ctx.outer_product_i16_xy_to_z(Some(XBytes(0)), Some(YBytes(0)), ZRow(0), true);
+            ctx.outer_product_i16_xy_to_z(Some(XBytes(0)), Some(YBytes(0)), ZRow(1), true);
+            ctx.outer_product_i16_xy_to_z(Some(XBytes(0)), Some(YBytes(0)), ZRow(0), true);
+            ctx.outer_product_i16_xy_to_z(Some(XBytes(0)), Some(YBytes(0)), ZRow(1), true);
 
-            ctx.outer_product_i16_xy_to_z(0, 0, 0, true, false, false);
-            ctx.outer_product_i16_xy_to_z(0, 0, 1, true, false, false);
-            ctx.outer_product_i16_xy_to_z(0, 0, 0, true, false, false);
-            ctx.outer_product_i16_xy_to_z(0, 0, 1, true, false, false);
-            ctx.outer_product_i16_xy_to_z(0, 0, 0, true, false, false);
-            ctx.outer_product_i16_xy_to_z(0, 0, 1, true, false, false);
-            ctx.outer_product_i16_xy_to_z(0, 0, 0, true, false, false);
-            ctx.outer_product_i16_xy_to_z(0, 0, 1, true, false, false);
+            ctx.outer_product_i16_xy_to_z(Some(XBytes(0)), Some(YBytes(0)), ZRow(0), true);
+            ctx.outer_product_i16_xy_to_z(Some(XBytes(0)), Some(YBytes(0)), ZRow(1), true);
+            ctx.outer_product_i16_xy_to_z(Some(XBytes(0)), Some(YBytes(0)), ZRow(0), true);
+            ctx.outer_product_i16_xy_to_z(Some(XBytes(0)), Some(YBytes(0)), ZRow(1), true);
+            ctx.outer_product_i16_xy_to_z(Some(XBytes(0)), Some(YBytes(0)), ZRow(0), true);
+            ctx.outer_product_i16_xy_to_z(Some(XBytes(0)), Some(YBytes(0)), ZRow(1), true);
+            ctx.outer_product_i16_xy_to_z(Some(XBytes(0)), Some(YBytes(0)), ZRow(0), true);
+            ctx.outer_product_i16_xy_to_z(Some(XBytes(0)), Some(YBytes(0)), ZRow(1), true);
         }
         let rate = count as f64 / start.elapsed().as_secs_f64();
         println!("[{:3}] {:2} amxmac16s per second", tid, rate);
