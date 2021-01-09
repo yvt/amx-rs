@@ -1,5 +1,6 @@
 #![feature(array_map)]
-use amx::{prelude::*, XRow, YRow};
+use amx::{prelude::*, Index4, Normal, XBytes, XRow, YBytes, YRow, X8};
+use either::{Left, Right};
 use quickcheck::TestResult;
 
 fn init() {
@@ -63,16 +64,15 @@ fn qc_genlut_lut8x16(
             }
         }
         ctx.load512(values.as_ptr(), XRow(table_row));
-        ctx.genlut(
-            (index_offset as u64)
-                | ((out_row as u64) << 20)
-                // TODO: there's something at bit 25, 26
-                | ((indices_in_y as u64) << 10)
-                | (1 << 53)
-                // TODO: there's something at bit 54
-                | (1 << 55)
-                | (1 << 56)
-                | ((table_row as u64) << 60),
+        ctx.lut(
+            if indices_in_y {
+                Left(YBytes(index_offset))
+            } else {
+                Right(XBytes(index_offset))
+            },
+            XRow(table_row),
+            XRow(out_row),
+            (Normal, Index4, X8),
         );
         ctx.store512(got.as_mut_ptr(), XRow(out_row));
         all_x = std::mem::transmute::<_, [[u64; 8]; 8]>(ctx.read_x());
