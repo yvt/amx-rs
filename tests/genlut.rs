@@ -43,40 +43,43 @@ fn qc_genlut_lut8x16(
     log::debug!("indices_in_y = {:x?}", indices_in_y);
 
     let mut got = [0u8; 64];
-    let all_x;
+    let mut ctx = amx::AmxCtx::new().unwrap();
     unsafe {
-        let mut ctx = amx::AmxCtx::new().unwrap();
-        {
-            indices.resize_with(64, u8::default);
+        indices.resize_with(64, u8::default);
 
-            // Load `indices` at byte offset `index_offset`
-            let mut index_row_1 = [0u8; 64];
-            let mut index_row_2 = [0u8; 64];
-            let sub = index_offset % 64;
-            index_row_1[sub..].copy_from_slice(&indices[..64 - sub]);
-            index_row_2[..sub].copy_from_slice(&indices[64 - sub..]);
-            if indices_in_y {
-                ctx.load512(index_row_1.as_ptr(), YRow(index_offset / 64));
-                ctx.load512(index_row_2.as_ptr(), YRow(index_offset / 64 + 1));
-            } else {
-                ctx.load512(index_row_1.as_ptr(), XRow(index_offset / 64));
-                ctx.load512(index_row_2.as_ptr(), XRow(index_offset / 64 + 1));
-            }
+        // Load `indices` at byte offset `index_offset`
+        let mut index_row_1 = [0u8; 64];
+        let mut index_row_2 = [0u8; 64];
+        let sub = index_offset % 64;
+        index_row_1[sub..].copy_from_slice(&indices[..64 - sub]);
+        index_row_2[..sub].copy_from_slice(&indices[64 - sub..]);
+        if indices_in_y {
+            ctx.load512(index_row_1.as_ptr(), YRow(index_offset / 64));
+            ctx.load512(index_row_2.as_ptr(), YRow(index_offset / 64 + 1));
+        } else {
+            ctx.load512(index_row_1.as_ptr(), XRow(index_offset / 64));
+            ctx.load512(index_row_2.as_ptr(), XRow(index_offset / 64 + 1));
         }
+
+        // Load `values` at the row `table_row`
         ctx.load512(values.as_ptr(), XRow(table_row));
-        ctx.lut(
-            if indices_in_y {
-                Left(YBytes(index_offset))
-            } else {
-                Right(XBytes(index_offset))
-            },
-            XRow(table_row),
-            XRow(out_row),
-            (Normal, Index4, X8),
-        );
-        ctx.store512(got.as_mut_ptr(), XRow(out_row));
-        all_x = std::mem::transmute::<_, [[u64; 8]; 8]>(ctx.read_x());
     }
+
+    // Perform table lookup
+    ctx.lut(
+        if indices_in_y {
+            Left(YBytes(index_offset))
+        } else {
+            Right(XBytes(index_offset))
+        },
+        XRow(table_row),
+        XRow(out_row),
+        (Normal, Index4, X8),
+    );
+
+    // Read the result
+    unsafe { ctx.store512(got.as_mut_ptr(), XRow(out_row)) };
+    let all_x = unsafe { std::mem::transmute::<_, [[u64; 8]; 8]>(ctx.read_x()) };
 
     let expected: Vec<u8> = (0..64)
         .map(|i| {
