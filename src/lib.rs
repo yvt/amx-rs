@@ -50,18 +50,17 @@
 mod emu;
 mod genlut;
 mod load_store;
-mod nativectx;
-pub mod nativeops;
 mod ops;
 mod regs;
-pub use crate::{
-    emu::*,
-    genlut::*,
-    load_store::*,
-    nativectx::{AmxCtx, NewAmxCtxError},
-    ops::AmxOps,
-    regs::*,
-};
+pub use crate::{emu::*, genlut::*, load_store::*, ops::AmxOps, regs::*};
+
+cfg_if::cfg_if! {
+    if #[cfg(target_arch = "aarch64")] {
+        mod nativectx;
+        pub mod nativeops;
+        pub use crate::nativectx::{AmxCtx, NewAmxCtxError};
+    }
+}
 
 /// The prelude.
 pub mod prelude {
