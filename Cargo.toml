@@ -6,7 +6,8 @@ edition = "2018"
 license = "MIT/Apache-2.0"
 
 [features]
-default = ["either"]
+default = ["either", "doc_cfg"]
+doc_cfg = []
 
 [dependencies]
 either = { version = "1.6.1", optional = true }
