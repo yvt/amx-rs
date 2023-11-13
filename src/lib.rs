@@ -45,7 +45,6 @@
 //!     z: [[u8; 64]; 64],
 //! }
 //! ```
-#![feature(asm)]
 #![feature(asm_const)]
 #![cfg_attr(feature = "doc_cfg", feature(doc_cfg))]
 

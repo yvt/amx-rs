@@ -1,16 +1,17 @@
 use amx::{prelude::*, XBytes, YBytes, ZRow};
-use clap::Clap;
+use clap::Parser;
 use std::time::Instant;
 
-#[derive(Debug, Clap)]
+#[derive(Debug, Parser)]
+#[command(author, version, about, long_about = None)]
 struct Opts {
     /// Number of threads to launch
-    #[clap(short = 'n')]
+    #[arg(short, long)]
     num_threads: usize,
 }
 
 fn main() {
-    let opts: Opts = Clap::parse();
+    let opts = Opts::parse();
     println!("Launching {} threads with AMX enabled", opts.num_threads);
 
     for i in 1..opts.num_threads {
