@@ -46,6 +46,7 @@
 //! }
 //! ```
 #![feature(asm)]
+#![feature(asm_const)]
 #![cfg_attr(feature = "doc_cfg", feature(doc_cfg))]
 
 mod emu;
