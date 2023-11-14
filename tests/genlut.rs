@@ -1,4 +1,3 @@
-#![feature(array_map)]
 use amx::{prelude::*, Index4, Normal, XBytes, XRow, YBytes, YRow, X8};
 use either::{Left, Right};
 use quickcheck::TestResult;
