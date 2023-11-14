@@ -2,6 +2,7 @@
 //!
 //! [Apple compiler intrinsics]: https://www.realworldtech.com/forum/?threadid=187087&curpostid=187120
 use std::{arch::asm, marker::PhantomData};
+
 /// Emit an AMX instruction with an input register.
 #[inline(always)]
 pub unsafe fn op_in<const OP: u8>(operand: u64) {
